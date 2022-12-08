@@ -12,9 +12,11 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.PopupMenu
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.snackbar.Snackbar
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
 import kotlinx.android.synthetic.main.kisi_card_tasarim.view.*
 
-class KisilerAdapter(private val mContext:Context, private var kisilerListe:ArrayList<Kisiler>,private val vt:VeritabaniYardimcisi) : RecyclerView.Adapter<KisilerAdapter.CardTasarimTutucu>() {
+class KisilerAdapter(private val mContext:Context,private val refKisiler:DatabaseReference, private var kisilerListe:ArrayList<Kisiler>) : RecyclerView.Adapter<KisilerAdapter.CardTasarimTutucu>() {
 
 
 
@@ -50,9 +52,7 @@ class KisilerAdapter(private val mContext:Context, private var kisilerListe:Arra
                     R.id.action_sil ->{
                         Snackbar.make(holder.imageViewNokta,"${kisi.kisi_ad} Silinsin mi?",Snackbar.LENGTH_SHORT)
                             .setAction("EVET"){
-                                Kisilerdao().kisiSil(vt,kisi.kisi_id)
-                                kisilerListe = Kisilerdao().tumKisiler(vt)
-                                notifyDataSetChanged()
+                                refKisiler.child(kisi.kisi_id!!).removeValue()
                             }.show()
                         true
                     }
@@ -92,9 +92,13 @@ class KisilerAdapter(private val mContext:Context, private var kisilerListe:Arra
             val kisi_ad = editTextAd.text.toString().trim()
             val kisi_tel = editTextTel.text.toString().trim()
 
-            Kisilerdao().kisiDuzenle(vt,kisi.kisi_id,kisi_ad,kisi_tel)
-            kisilerListe = Kisilerdao().tumKisiler(vt)
-            notifyDataSetChanged()
+            val bilgiler = HashMap<String,Any>()
+
+            bilgiler.put("kisi_ad",kisi_ad)
+            bilgiler.put("kisi_tel",kisi_tel)
+
+            refKisiler.child(kisi.kisi_id!!).updateChildren(bilgiler)
+
 
             Toast.makeText(mContext,"$kisi_ad - $kisi_tel", Toast.LENGTH_SHORT).show()
 

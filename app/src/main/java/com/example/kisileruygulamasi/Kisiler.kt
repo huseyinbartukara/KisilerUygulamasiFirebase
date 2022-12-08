@@ -1,6 +1,8 @@
 package com.example.kisileruygulamasi
 
-import java.io.Serializable
+import com.google.firebase.database.IgnoreExtraProperties
 
-data class Kisiler (var kisi_id:Int, var kisi_ad:String, var kisi_tel:String){
+
+@IgnoreExtraProperties
+data class Kisiler (var kisi_id:String? = "", var kisi_ad:String? = "", var kisi_tel:String? = ""){
 }

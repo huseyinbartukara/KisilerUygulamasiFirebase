@@ -10,13 +10,15 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SearchView
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.firebase.database.*
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
 
     private lateinit var kisilerListe:ArrayList<Kisiler>
     private lateinit var adapter: KisilerAdapter
-    private lateinit var vt:VeritabaniYardimcisi
+    private lateinit var refKisiler : DatabaseReference
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,9 +30,18 @@ class MainActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
         rv.setHasFixedSize(true)
         rv.layoutManager = LinearLayoutManager(this@MainActivity)
 
-        vt = VeritabaniYardimcisi(this)
+        val db = FirebaseDatabase.getInstance()
+        refKisiler = db.getReference("kisiler")
 
-        tumKisilerAl()
+        kisilerListe = ArrayList()
+
+        adapter = KisilerAdapter(this,refKisiler,kisilerListe)
+
+        rv.adapter = adapter
+
+        tumKisiler()
+
+
 
         fab.setOnClickListener {
             alertGoster()
@@ -54,10 +65,9 @@ class MainActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
             val kisi_ad = editTextAd.text.toString().trim()
             val kisi_tel = editTextTel.text.toString().trim()
 
-            Kisilerdao().kisiEkle(vt,kisi_ad,kisi_tel)
-            tumKisilerAl()
+            val kisi = Kisiler("",kisi_ad,kisi_tel)
 
-            Toast.makeText(this@MainActivity,"Kişi Eklendi",Toast.LENGTH_SHORT).show()
+            refKisiler.push().setValue(kisi)
 
         }
 
@@ -90,21 +100,59 @@ class MainActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
         return true
     }
 
-    fun tumKisilerAl(){
-        kisilerListe = Kisilerdao().tumKisiler(vt)
 
-        adapter = KisilerAdapter(this@MainActivity,kisilerListe,vt)
+
+
+    fun aramaYap(aramaKelime:String){
+
+        refKisiler.addValueEventListener(object : ValueEventListener{
+
+            override fun onDataChange(d: DataSnapshot) {
+                kisilerListe.clear()
+                for(c in d.children){
+                    val kisi = c.getValue(Kisiler::class.java)
+
+                    if(kisi != null){
+
+                            if(kisi.kisi_ad!!.contains(aramaKelime)){
+                                kisi.kisi_id = c.key
+                                kisilerListe.add(kisi)
+                            }
+                    }
+                }
+                adapter.notifyDataSetChanged()
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+
+            }
+        })
+
+        adapter = KisilerAdapter(this@MainActivity,refKisiler,kisilerListe)
 
         rv.adapter = adapter
     }
 
+    fun tumKisiler(){
+        refKisiler.addValueEventListener(object : ValueEventListener{
 
-    fun aramaYap(aramaKelime:String){
-        kisilerListe = Kisilerdao().kisiAra(vt,aramaKelime)
+            override fun onDataChange(d: DataSnapshot) {
+                kisilerListe.clear()
+                for(c in d.children){
+                    val kisi = c.getValue(Kisiler::class.java)
 
-        adapter = KisilerAdapter(this@MainActivity,kisilerListe,vt)
+                    if(kisi != null){
+                        kisi.kisi_id = c.key
+                        kisilerListe.add(kisi)
+                    }
+                }
+                adapter.notifyDataSetChanged()
+            }
 
-        rv.adapter = adapter
+            override fun onCancelled(error: DatabaseError) {
+
+            }
+        })
     }
 
 }
